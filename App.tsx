@@ -282,7 +282,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="py-8 px-6 text-center text-slate-400 text-sm border-t border-slate-200 mt-auto">
-        <p>© 2024 Batch-Collage Lite • 100% Offline & Private Processing</p>
+        <p>© 2025 Batch-Collage Lite | Dibuat oleh TIM NM RANTAU</p>
       </footer>
     </div>
   );
