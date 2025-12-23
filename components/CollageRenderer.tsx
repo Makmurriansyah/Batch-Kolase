@@ -71,11 +71,20 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
     const canvas = canvasRef.current;
     if (!canvas || photos.length === 0) return;
 
-    const ctx = canvas.getContext('2d');
+    // Explicitly request high quality and sRGB color space if supported
+    const ctx = canvas.getContext('2d', { 
+      alpha: false, 
+      desynchronized: true,
+      colorSpace: 'srgb' 
+    });
     if (!ctx) return;
 
     canvas.width = CANVAS_SIZE;
     canvas.height = CANVAS_SIZE;
+
+    // Set high quality smoothing
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
@@ -88,7 +97,6 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
     const imagePromises = photos.map(photo => {
       return new Promise<{img: HTMLImageElement, ar: number}>((resolve) => {
         const img = new Image();
-        img.crossOrigin = "anonymous";
         img.onload = () => {
           const rotation = photo.rotation || 0;
           const isVertical = rotation % 180 !== 0;
@@ -115,7 +123,11 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
       
       const radius = frameSize > 0 ? 12 : 0;
       ctx.beginPath();
-      ctx.roundRect(x, y, w, h, radius);
+      if (ctx.roundRect) {
+        ctx.roundRect(x, y, w, h, radius);
+      } else {
+        ctx.rect(x, y, w, h);
+      }
       ctx.closePath();
       ctx.clip();
 
@@ -158,10 +170,10 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
       ctx.restore();
 
       if (showFilenames) {
-        const labelHeight = Math.max(24, Math.min(cellH * 0.15, 48));
-        const fontSize = Math.max(12, Math.min(cellH * 0.08, 22));
+        const labelHeight = Math.max(24, Math.min(cellH * 0.12, 40));
+        const fontSize = Math.max(12, Math.min(cellH * 0.07, 20));
         
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(x, y + h - labelHeight, w, labelHeight);
         
         ctx.fillStyle = '#ffffff';
@@ -170,7 +182,7 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
         ctx.textBaseline = 'middle';
         
         let displayName = photo.name;
-        const maxTextWidth = w * 0.9;
+        const maxTextWidth = w * 0.85;
         if (ctx.measureText(displayName).width > maxTextWidth) {
           while (ctx.measureText(displayName + '...').width > maxTextWidth && displayName.length > 0) {
             displayName = displayName.substring(0, displayName.length - 1);
@@ -190,7 +202,7 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
       const y = margin + row * (cellH + gap);
       
       const isSource = isDragging && mode === 'swap' && dragState.current?.photoIndex === i;
-      drawImageInRect(data.img, x, y, cellW, cellH, photos[i], isSource ? 0.2 : 1);
+      drawImageInRect(data.img, x, y, cellW, cellH, photos[i], isSource ? 0.3 : 1);
     });
 
     if (isDragging && mode === 'swap' && dragState.current) {
@@ -200,9 +212,9 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
       const gy = dragState.current.currentY - cellH / 2;
       
       ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.4)';
-      ctx.shadowBlur = 40;
-      drawImageInRect(ghostData.img, gx, gy, cellW, cellH, photo, 0.85);
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 30;
+      drawImageInRect(ghostData.img, gx, gy, cellW, cellH, photo, 0.8);
       ctx.restore();
     }
   };
@@ -221,8 +233,8 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
+      clientX = (e as any).clientX;
+      clientY = (e as any).clientY;
     }
     
     return {
@@ -328,7 +340,6 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
     dragState.current = null;
   };
 
-  // NATIVE DRAG HANDLERS (Untuk Tukar Antar Canvas)
   const handleDragStart = (e: React.DragEvent) => {
     if (mode !== 'swap') {
       e.preventDefault();
@@ -393,7 +404,6 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
       }
     }
 
-    // Jika drop di area kosong kanvas ini, ambil foto pertama di kanvas ini sebagai target default
     if (!targetPhotoId && photos.length > 0) {
       targetPhotoId = photos[0].id;
     }
@@ -408,7 +418,8 @@ const CollageRenderer: React.FC<CollageRendererProps> = ({
     if (!canvas) return;
     const link = document.createElement('a');
     link.download = `collage-${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png', 1.0);
+    // Removed the quality parameter for PNG as it is non-standard
+    link.href = canvas.toDataURL('image/png');
     link.click();
   };
 

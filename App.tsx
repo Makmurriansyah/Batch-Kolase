@@ -95,7 +95,8 @@ const App: React.FC = () => {
     canvases.forEach((canvas, index) => {
       const link = document.createElement('a');
       link.download = `collage-${index + 1}.png`;
-      link.href = (canvas as HTMLCanvasElement).toDataURL('image/png', 1.0);
+      // Use toDataURL without quality for PNG
+      link.href = (canvas as HTMLCanvasElement).toDataURL('image/png');
       link.click();
     });
     setShowDownloadDropdown(false);
@@ -109,10 +110,11 @@ const App: React.FC = () => {
       const canvases = Array.from(document.querySelectorAll('canvas')) as HTMLCanvasElement[];
       const blobPromises = canvases.map((canvas, index) => {
         return new Promise<void>((resolve) => {
+          // Use toBlob without quality for PNG
           canvas.toBlob((blob) => {
             if (blob) zip.file(`kolase-${index + 1}.png`, blob);
             resolve();
-          }, 'image/png', 1.0);
+          }, 'image/png');
         });
       });
       await Promise.all(blobPromises);
