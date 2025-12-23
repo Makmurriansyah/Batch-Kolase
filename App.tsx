@@ -202,7 +202,7 @@ const App: React.FC = () => {
               </p>
             </div>
             
-            <div className="w-full max-w-2xl">
+            <div className="w-full max-w-2xl mx-auto">
               <PhotoPicker onPhotosSelected={handlePhotosSelected} />
             </div>
           </div>
